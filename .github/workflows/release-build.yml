@@ -128,11 +128,19 @@ jobs:
         run: |
           mkdir -p release
           go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-windows-amd64.exe
+          # Copy required DLLs
+          cp /mingw64/bin/libportaudio.dll release/
+          cp /mingw64/bin/libgcc_s_seh-1.dll release/
+          cp /mingw64/bin/libstdc++-6.dll release/
+          # Install zip if not present
+          pacman -S --noconfirm zip
+          # Create ZIP archive
+          zip -r voice-keyboard-windows-amd64.zip release/
 
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows
-          path: release/voice-keyboard-windows-*
+          path: voice-keyboard-windows-amd64.zip
 
   create-release:
     needs: [build-linux, build-macos, build-windows]
