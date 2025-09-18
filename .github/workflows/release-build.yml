@@ -32,14 +32,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config build-essential ca-certificates wget unzip
-          # X11 / OpenGL deps for glfw/fyne
-          sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+          # X11 / OpenGL deps for glfw/fyne (include Xxf86vm and Xext)
+          sudo apt-get install -y libgl1-mesa-dev libglu1-mesa-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev libxxf86vm-dev libxext-dev
           # Audio / PortAudio
           sudo apt-get install -y portaudio19-dev libasound2-dev libpulse-dev
 
       - name: Build Linux binaries
         run: |
           mkdir -p release
+          export CGO_ENABLED=1
+          export CC=gcc
           GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-amd64
           GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-arm64
 
@@ -64,9 +66,12 @@ jobs:
       - name: Install Homebrew deps (PortAudio, pkg-config)
         run: |
           brew update
-          brew install portaudio pkg-config
+          brew install portaudio pkg-config glfw
 
       - name: Build macOS binaries
+        env:
+          CGO_ENABLED: '1'
+          CC: clang
         run: |
           mkdir -p release
           GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-darwin-amd64
@@ -92,6 +97,7 @@ jobs:
           install: |
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-portaudio
+            mingw-w64-x86_64-pkg-config
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -106,16 +112,13 @@ jobs:
           $env:Path = "C:\\msys64\\mingw64\\bin;" + $env:Path
           # Point pkg-config to MSYS2 pkgconfig dir
           $env:PKG_CONFIG_PATH = "C:\\msys64\\mingw64\\lib\\pkgconfig"
-          # Build amd64
+          # Enable cgo
+          $env:CGO_ENABLED = '1'
+          # Build amd64 only to avoid missing cross toolchains on runner
           $env:GOOS = 'windows'
           $env:GOARCH = 'amd64'
           $env:CC = 'x86_64-w64-mingw32-gcc'
           go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe
-          # Build arm64 (if toolchain installed)
-          $env:GOARCH = 'arm64'
-          $env:CC = 'aarch64-w64-mingw32-gcc'
-          # Attempt arm64 build; if compiler missing this will fail — that's acceptable for some runners
-          go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-arm64.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
