@@ -1,6 +1,6 @@
 # Voice Keyboard
 
-A Go application that converts speech to text and types it into the active text field using Google Cloud Speech-to-Text.
+A Go application with GUI that converts speech to text and types it into the active text field using Google Cloud Speech-to-Text.
 
 ## Prerequisites
 
@@ -28,10 +28,6 @@ A Go application that converts speech to text and types it into the active text 
    - Create a Google Cloud Project
    - Enable the Speech-to-Text API
    - Create a Service Account and download the JSON key
-   - Set the environment variable:
-     ```bash
-     export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
-     ```
 
 ## Usage
 
@@ -40,11 +36,28 @@ A Go application that converts speech to text and types it into the active text 
    go run main.go
    ```
 
-2. Focus on a text field (e.g., in a browser, editor, etc.)
+2. A GUI window will open with the following controls:
+   - **Select Service Account File**: Click to choose your Google Cloud service account JSON file
+   - **Start Voice Recognition**: Click to begin speech-to-text recognition
+   - **Stop Voice Recognition**: Click to stop recognition
+   - **Hotkey Assignment**: Enter a hotkey combination (e.g., Ctrl+Space) - currently for display only
 
-3. Start speaking. The application will transcribe your speech and type the text into the focused field.
+3. Select your service account JSON file using the file picker
 
-4. The program handles pauses automatically through streaming recognition.
+4. Click "Start Voice Recognition" to begin
+
+5. Focus on a text field (e.g., in a browser, editor, etc.)
+
+6. Start speaking. The application will transcribe your speech and type the text into the focused field.
+
+7. Click "Stop Voice Recognition" when done
+
+## GUI Features
+
+- **Service Account Selection**: File picker to select Google Cloud credentials
+- **Start/Stop Controls**: Buttons to control voice recognition streaming
+- **Status Display**: Shows current state of the application
+- **Hotkey Input**: Field for future hotkey assignment functionality
 
 ## How it works
 
@@ -58,3 +71,4 @@ A Go application that converts speech to text and types it into the active text 
 - Ensure your microphone is working and permissions are granted
 - The application types only final transcripts to avoid typing partial words
 - For continuous use, keep the application running and switch focus as needed
+- The GUI provides easy control without needing command-line interaction
