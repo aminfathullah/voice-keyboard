@@ -28,6 +28,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Install native build dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config build-essential ca-certificates wget unzip
+          # X11 / OpenGL deps for glfw/fyne
+          sudo apt-get install -y libgl1-mesa-dev libx11-dev libxcursor-dev libxrandr-dev libxinerama-dev libxi-dev
+          # Audio / PortAudio
+          sudo apt-get install -y portaudio19-dev libasound2-dev libpulse-dev
+
       - name: Build Linux binaries
         run: |
           mkdir -p release
@@ -51,6 +60,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.24'
+
+      - name: Install Homebrew deps (PortAudio, pkg-config)
+        run: |
+          brew update
+          brew install portaudio pkg-config
 
       - name: Build macOS binaries
         run: |
@@ -84,12 +98,24 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Build Windows binaries (MSYS2)
+      - name: Build Windows binaries (native)
+        shell: pwsh
         run: |
           mkdir -p release
-          # Build both amd64 and arm64 using the MSYS2 toolchain environment
-          C:\msys64\usr\bin\bash -lc "GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe"
-          C:\msys64\usr\bin\bash -lc "GOOS=windows GOARCH=arm64 CC=aarch64-w64-mingw32-gcc go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-arm64.exe"
+          # Ensure MSYS2 mingw64 binaries are in PATH so pkg-config and compilers are found
+          $env:Path = "C:\\msys64\\mingw64\\bin;" + $env:Path
+          # Point pkg-config to MSYS2 pkgconfig dir
+          $env:PKG_CONFIG_PATH = "C:\\msys64\\mingw64\\lib\\pkgconfig"
+          # Build amd64
+          $env:GOOS = 'windows'
+          $env:GOARCH = 'amd64'
+          $env:CC = 'x86_64-w64-mingw32-gcc'
+          go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe
+          # Build arm64 (if toolchain installed)
+          $env:GOARCH = 'arm64'
+          $env:CC = 'aarch64-w64-mingw32-gcc'
+          # Attempt arm64 build; if compiler missing this will fail — that's acceptable for some runners
+          go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-arm64.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
