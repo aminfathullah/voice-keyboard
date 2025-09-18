@@ -40,6 +40,7 @@ A Go application with GUI that converts speech to text and types it into the act
    - **Select Service Account File**: Click to choose your Google Cloud service account JSON file
    - **Start Voice Recognition**: Click to begin speech-to-text recognition
    - **Stop Voice Recognition**: Click to stop recognition
+   - **Language Selection**: Choose a language for transcription (e.g., `en-US`, `id-ID`). The GUI defaults to `id-ID`.
    - **Hotkey Assignment**: Enter a hotkey combination (e.g., Ctrl+Space) - currently for display only
 
 3. Select your service account JSON file using the file picker

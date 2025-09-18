@@ -30,6 +30,7 @@ type VoiceKeyboard struct {
 	cancel             context.CancelFunc
 	running            bool
 	serviceAccountFile string
+	language           string
 	lastTyped          string
 	lastTypedMu        sync.Mutex
 }
@@ -38,12 +39,20 @@ func NewVoiceKeyboard() *VoiceKeyboard {
 	return &VoiceKeyboard{
 		audioChan: make(chan []byte, 10),
 		running:   false,
+		language:  "id-ID",
 	}
 }
 
 func (vk *VoiceKeyboard) SetServiceAccountFile(filePath string) {
 	vk.serviceAccountFile = filePath
 	os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filePath)
+}
+
+func (vk *VoiceKeyboard) SetLanguage(lang string) {
+	if lang == "" {
+		return
+	}
+	vk.language = lang
 }
 
 func (vk *VoiceKeyboard) Initialize() error {
@@ -90,13 +99,14 @@ func (vk *VoiceKeyboard) Start() error {
 	}
 
 	// Set up streaming request
+	// Use selected language
 	req := &speechpb.StreamingRecognizeRequest{
 		StreamingRequest: &speechpb.StreamingRecognizeRequest_StreamingConfig{
 			StreamingConfig: &speechpb.StreamingRecognitionConfig{
 				Config: &speechpb.RecognitionConfig{
 					Encoding:        speechpb.RecognitionConfig_LINEAR16,
 					SampleRateHertz: 16000,
-					LanguageCode:    "id-ID",
+					LanguageCode:    vk.language,
 				},
 				InterimResults: true,
 			},
@@ -275,12 +285,20 @@ func main() {
 		log.Println("Voice recognition stopped")
 	}
 
+	// Status label
+	statusLabel := widget.NewLabel("Status: Stopped")
+
+	// Language selector
+	languages := []string{"en-US", "id-ID", "es-ES", "fr-FR", "de-DE", "ja-JP", "zh-CN"}
+	langSelect := widget.NewSelect(languages, func(s string) {
+		vk.SetLanguage(s)
+		statusLabel.SetText("Language: " + s)
+	})
+	langSelect.SetSelected(vk.language)
+
 	// Hotkey input field
 	hotkeyEntry := widget.NewEntry()
 	hotkeyEntry.SetPlaceHolder("Enter hotkey (e.g., Ctrl+Space)")
-
-	// Status label
-	statusLabel := widget.NewLabel("Status: Stopped")
 
 	// Layout
 	content := container.NewVBox(
@@ -288,6 +306,8 @@ func main() {
 		serviceAccountLabel,
 		serviceAccountButton,
 		container.NewHBox(startButton, stopButton),
+		widget.NewLabel("Language:"),
+		langSelect,
 		widget.NewLabel("Hotkey Assignment:"),
 		hotkeyEntry,
 		statusLabel,
