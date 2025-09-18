@@ -90,35 +90,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install MSYS2 and required packages
+      - name: Install MSYS2 and packages
         uses: msys2/setup-msys2@v2
         with:
           update: true
-          install: |
+          msystem: MINGW64
+          install: >
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-portaudio
             mingw-w64-x86_64-pkg-config
+            git
 
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24'
+          go-version: '1.23.x'  # 1.24 doesn't exist yet
 
-      - name: Build Windows binaries (native via PowerShell)
-        shell: pwsh
+      - name: Verify pkg-config & PortAudio
+        shell: msys2 {0}
         run: |
-          New-Item -ItemType Directory -Force -Path release | Out-Null
-          # Prepend MSYS2 mingw64 bin so pkg-config and mingw compilers are found
-          $env:Path = "C:\\msys64\\mingw64\\bin;" + $env:Path
-          # Point pkg-config to the mingw64 pkgconfig directory
-          $env:PKG_CONFIG_PATH = "C:\\msys64\\mingw64\\lib\\pkgconfig"
-          # Enable cgo and set compiler
-          $env:CGO_ENABLED = '1'
-          $env:CC = 'x86_64-w64-mingw32-gcc'
-          $env:GOOS = 'windows'
-          $env:GOARCH = 'amd64'
-          # Build using the Go installed by actions/setup-go
-          go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe
+          which pkg-config
+          ls -l /mingw64/lib/pkgconfig/portaudio-2.0.pc
+          pkg-config --modversion portaudio-2.0
+
+      - name: Build (inside MSYS2)
+        shell: msys2 {0}
+        env:
+          CGO_ENABLED: "1"
+          CC: x86_64-w64-mingw32-gcc
+          GOOS: windows
+          GOARCH: amd64
+          PKG_CONFIG_PATH: /mingw64/lib/pkgconfig:/mingw64/share/pkgconfig
+        run: |
+          mkdir -p release
+          go version
+          go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-windows-amd64.exe
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
