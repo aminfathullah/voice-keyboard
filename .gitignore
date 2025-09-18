@@ -1,0 +1,33 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build outputs
+*.test
+/build/
+/bin/
+
+# Go workspace file
+go.work
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Generated files
+go.sum
+
+# Secrets: service account keys
+*.json
+# If you want to keep some JSONs, add exceptions or track only example files
+
+# Fyne cache
+fyne_cache/
