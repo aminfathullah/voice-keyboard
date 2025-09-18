@@ -62,14 +62,27 @@ A Go application with GUI that converts speech to text and types it into the act
 
 ## How it works
 
-- Captures audio from the default microphone using PortAudio
-- Streams audio to Google Cloud Speech-to-Text API
-- Receives real-time transcription
-- Uses xdotool to simulate keyboard typing into the active window
 
 ## Notes
 
-- Ensure your microphone is working and permissions are granted
-- The application types only final transcripts to avoid typing partial words
-- For continuous use, keep the application running and switch focus as needed
-- The GUI provides easy control without needing command-line interaction
+
+## Automated Releases (GitHub Releases)
+
+This repository includes a GitHub Actions workflow that builds release binaries and attaches them to a GitHub Release when you push a tag matching `v*.*.*` (for example `v0.1.0`).
+
+How it works:
+- When you push a tag like `v1.2.3`, the workflow builds binaries for Linux, macOS, and Windows (amd64 and arm64) and attaches them to the GitHub Release created for that tag.
+
+Trigger a release locally:
+
+```bash
+# create a signed or lightweight tag (example lightweight)
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+After the workflow finishes you can download the compiled binaries from the GitHub Releases page for your repository.
+
+Notes:
+- Release artifacts contain compiled binaries only. They do not include your service account JSON (which should remain private).
+- If you want to customize targets or build flags, edit `.github/workflows/release-build.yml`.
