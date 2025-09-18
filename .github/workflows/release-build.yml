@@ -37,13 +37,13 @@ jobs:
           # Audio / PortAudio
           sudo apt-get install -y portaudio19-dev libasound2-dev libpulse-dev
 
-      - name: Build Linux binaries
+      - name: Build Linux binaries (amd64)
         run: |
           mkdir -p release
           export CGO_ENABLED=1
           export CC=gcc
+          # Build only amd64 on Ubuntu hosted runners to avoid cross-compile assembler issues
           GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-amd64
-          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-arm64
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -68,13 +68,13 @@ jobs:
           brew update
           brew install portaudio pkg-config glfw
 
-      - name: Build macOS binaries
+      - name: Build macOS binaries (arm64)
         env:
           CGO_ENABLED: '1'
           CC: clang
         run: |
           mkdir -p release
-          GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-darwin-amd64
+          # Build only arm64 on macOS runners (Homebrew on Apple silicon installs arm64 libs)
           GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-darwin-arm64
 
       - name: Upload artifacts
@@ -104,21 +104,17 @@ jobs:
         with:
           go-version: '1.24'
 
-      - name: Build Windows binaries (native)
-        shell: pwsh
+      - name: Build Windows binaries (MSYS2)
         run: |
           mkdir -p release
-          # Ensure MSYS2 mingw64 binaries are in PATH so pkg-config and compilers are found
-          $env:Path = "C:\\msys64\\mingw64\\bin;" + $env:Path
-          # Point pkg-config to MSYS2 pkgconfig dir
-          $env:PKG_CONFIG_PATH = "C:\\msys64\\mingw64\\lib\\pkgconfig"
-          # Enable cgo
-          $env:CGO_ENABLED = '1'
-          # Build amd64 only to avoid missing cross toolchains on runner
-          $env:GOOS = 'windows'
-          $env:GOARCH = 'amd64'
-          $env:CC = 'x86_64-w64-mingw32-gcc'
-          go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe
+          # Run build inside MSYS2 bash so pkg-config and mingw compilers are available
+          C:\\msys64\\usr\\bin\\bash -lc '
+            export PATH="/mingw64/bin:$PATH"
+            export PKG_CONFIG_PATH="/mingw64/lib/pkgconfig"
+            export CGO_ENABLED=1
+            export CC=x86_64-w64-mingw32-gcc
+            GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o /c/Users/runneradmin/work/_temp/release/voice-keyboard-windows-amd64.exe
+          '
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
