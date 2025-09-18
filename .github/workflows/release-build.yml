@@ -6,13 +6,9 @@ on:
       - 'v*.*.*'
 
 jobs:
-  build:
+  build-linux:
+    name: Build (Linux)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        goos: [linux, windows, darwin]
-        goarch: [amd64, arm64]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,19 +28,77 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Build
+      - name: Build Linux binaries
         run: |
           mkdir -p release
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-${{ matrix.goos }}-${{ matrix.goarch }}
+          GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-amd64
+          GOOS=linux GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-linux-arm64
 
-      - name: Upload release artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: voice-keyboard-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: release/voice-keyboard-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: release-linux
+          path: release/voice-keyboard-linux-*
+
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build macOS binaries
+        run: |
+          mkdir -p release
+          GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-darwin-arm64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: release/voice-keyboard-darwin-*
+
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install MSYS2 and required packages
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: |
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-portaudio
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+
+      - name: Build Windows binaries (MSYS2)
+        run: |
+          mkdir -p release
+          # Build both amd64 and arm64 using the MSYS2 toolchain environment
+          C:\msys64\usr\bin\bash -lc "GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-amd64.exe"
+          C:\msys64\usr\bin\bash -lc "GOOS=windows GOARCH=arm64 CC=aarch64-w64-mingw32-gcc go build -trimpath -ldflags '-s -w' -o release/voice-keyboard-windows-arm64.exe"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: release/voice-keyboard-windows-*
 
   create-release:
-    needs: build
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
