@@ -125,15 +125,17 @@ jobs:
           GOOS: windows
           GOARCH: amd64
           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig:/mingw64/share/pkgconfig
-          # allow pkg-config to return system lib paths to cgo
           PKG_CONFIG_ALLOW_SYSTEM_CFLAGS: "1"
           PKG_CONFIG_ALLOW_SYSTEM_LIBS: "1"
         run: |
           mkdir -p release
-          # let pkg-config tell us EXACTLY what to link for static PortAudio
+          # Ask pkg-config for all static libs PortAudio needs
+          BASE_LDFLAGS="$(pkg-config --static --libs portaudio-2.0)"
+          echo "pkg-config says: $BASE_LDFLAGS"
+          # Add typical system libs in case the .pc omits some
+          EXTRA="-lwinmm -lsetupapi -lole32 -luuid -lksuser -lavrt -lm"
           export CGO_CFLAGS="$(pkg-config --cflags portaudio-2.0)"
-          export CGO_LDFLAGS="$(pkg-config --static --libs portaudio-2.0) -static -static-libgcc -static-libstdc++"
-          echo "CGO_LDFLAGS=$CGO_LDFLAGS"
+          export CGO_LDFLAGS="$BASE_LDFLAGS $EXTRA -static -static-libgcc -static-libstdc++"
           go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-windows-amd64.exe
 
       - uses: actions/upload-artifact@v4
