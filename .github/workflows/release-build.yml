@@ -87,11 +87,9 @@ jobs:
     name: Build (Windows)
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install MSYS2 and packages
-        uses: msys2/setup-msys2@v2
+      - uses: msys2/setup-msys2@v2
         with:
           update: true
           msystem: MINGW64
@@ -99,16 +97,18 @@ jobs:
             mingw-w64-x86_64-toolchain
             mingw-w64-x86_64-portaudio
             mingw-w64-x86_64-pkg-config
-            git
+            mingw-w64-x86_64-go
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23.x'  # 1.24 doesn't exist yet
+      # (Optional) remove this; not needed if you install Go via MSYS2
+      # - uses: actions/setup-go@v4
+      #   with:
+      #     go-version: '1.23.x'
 
-      - name: Verify pkg-config & PortAudio
+      - name: Verify toolchain
         shell: msys2 {0}
         run: |
+          which go
+          go version
           which pkg-config
           ls -l /mingw64/lib/pkgconfig/portaudio-2.0.pc
           pkg-config --modversion portaudio-2.0
@@ -123,11 +123,9 @@ jobs:
           PKG_CONFIG_PATH: /mingw64/lib/pkgconfig:/mingw64/share/pkgconfig
         run: |
           mkdir -p release
-          go version
           go build -trimpath -ldflags "-s -w" -o release/voice-keyboard-windows-amd64.exe
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-windows
           path: release/voice-keyboard-windows-*
